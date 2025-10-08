@@ -1,0 +1,227 @@
+﻿using PVOptimization_V1.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PVOptimization_V1.GA
+{
+    internal class MainFunctions
+    {
+        public static List<Individual> CreateInitialPopulation(RoofGrid grid, int populationSize, int panelsPerIndividual, Random rng, double ridgeY)
+        {
+            double minX = grid.MinX, maxX = grid.MaxX, minY = grid.MinY, maxY = grid.MaxY;
+
+            var pop = new List<Individual>(populationSize);
+
+            for (int i = 0; i < populationSize; i++)
+            {
+                var panels = new List<Panel>(panelsPerIndividual);
+
+                for (int k = 0; k < panelsPerIndividual; k++)
+                {
+                    bool placed = false;
+                    for (int attempt = 0; attempt < 2000; attempt++)
+                    {
+                        bool placeTop = rng.Next(2) == 0;
+
+                        bool rotated = rng.Next(2) == 0;
+                        double W = rotated ? Panel.PanelHeightPx : Panel.PanelWidthPx;
+                        double H = rotated ? Panel.PanelWidthPx : Panel.PanelHeightPx;
+
+                        double yMinAllowed, yMaxAllowed;
+                        if (placeTop)
+                        {
+                            yMinAllowed = minY;
+                            yMaxAllowed = ridgeY - H;
+                        }
+                        else
+                        {
+                            yMinAllowed = ridgeY;
+                            yMaxAllowed = maxY - H;
+                        }
+
+                        if (yMaxAllowed < yMinAllowed) continue;
+
+                        double x = minX + rng.NextDouble() * (maxX - minX - W);
+                        double y = yMinAllowed + rng.NextDouble() * (yMaxAllowed - yMinAllowed);
+
+                        var cand = new Panel(x, y, rotated);
+                        cand.ClampToBounds(minX, minY, maxX, maxY);
+
+                        if (cand.YMin < ridgeY && cand.YMax > ridgeY)
+                            continue;
+
+                        bool overlaps = false;
+                        foreach (var p in panels)
+                        {
+                            if (p.Overlaps(cand))
+                            {
+                                overlaps = true;
+                                break;
+                            }
+                        }
+                        if (overlaps) continue;
+
+                        
+                        if (grid.RectOverlapsForbidden(cand.XMin, cand.YMin, cand.XMax, cand.YMax))
+                            continue;
+
+                        panels.Add(cand);
+                        placed = true;
+                        break;
+
+                    }
+
+                    if (!placed)
+                    {
+                        break;
+                    }
+                }
+
+                pop.Add(new Individual(panels));
+            }
+
+            return pop;
+        }
+        public static void EvaluatePopulation(List<Individual> pop, RoofGrid grid, int panelsPerIndividual, bool easyInstall)
+        {
+            Parallel.ForEach(pop, ind => EvaluateIndividual(ind, grid,panelsPerIndividual,easyInstall));
+        }
+        public static void EvaluateIndividual(Individual ind, RoofGrid grid, int panelsPerIndividual,bool easyInstall)
+        {
+            var panels = ind.Panels;
+            int n = panels.Count;
+
+            double sumAvg = 0.0;
+
+            var bounds = new (int ix0, int iy0, int ix1, int iy1, int count)[n];
+            var panelAvg = new double[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                var p = panels[i];
+
+                grid.ToIndexBounds(p.XMin, p.YMin, p.XMax, p.YMax,
+                                   out int ix0, out int iy0, out int ix1, out int iy1);
+
+                int count = (ix1 - ix0 + 1) * (iy1 - iy0 + 1);
+                double sum = grid.RectSum(ix0, iy0, ix1, iy1);
+                double avg = sum / count;
+
+                bounds[i] = (ix0, iy0, ix1, iy1, count);
+                panelAvg[i] = avg;
+
+                sumAvg += avg;
+            }
+
+            int expected = panelsPerIndividual;
+            double fitness = expected > 0 ? (sumAvg / expected) : 0.0;
+
+            if (easyInstall && n >= 2)
+            {
+                const double yTol = 2.0;
+                const double wHoriz = 0.06;
+                const int minRowSize = 3;
+
+                var yBuckets = panels
+                    .GroupBy(p => (int)Math.Round(p.YMin / yTol))
+                    .Select(g => g.Count())
+                    .ToList();
+
+                int effectiveAligned = yBuckets.Sum(cnt => Math.Max(0, cnt - (minRowSize - 1)));
+
+                double rowScore = Math.Min(1.0, effectiveAligned / (double)n);
+
+                fitness = fitness * (1.0 + wHoriz * rowScore);
+            }
+
+            ind.Fitness = fitness;
+
+        }
+        public static Individual TournamentSelect(List<Individual> pop, int k, Random rng)
+        {
+            var best = pop[rng.Next(pop.Count)];
+            for (int i = 1; i < k; i++)
+            {
+                var challenger = pop[rng.Next(pop.Count)];
+                if (challenger.Fitness > best.Fitness)
+                    best = challenger;
+            }
+            return best;
+        }
+        public static Individual Crossover(Individual p1, Individual p2, RoofGrid grid, int panelsPerIndividual, Random rng,double ridgeY)
+        {
+            var childPanels = new List<Panel>(panelsPerIndividual);
+
+            var candidates = new List<Panel>(p1.Panels.Count + p2.Panels.Count);
+            candidates.AddRange(p1.Panels);
+            candidates.AddRange(p2.Panels); 
+            HelperFunctions.ShuffleInPlace(candidates,rng);
+
+            foreach (var src in candidates)
+            {
+                if (childPanels.Count >= panelsPerIndividual) break;
+
+                var p = new Panel(src.XMin, src.YMin,src.Rotated);
+                p.ClampToBounds(grid.MinX, grid.MinY, grid.MaxX, grid.MaxY);
+
+                if (p.YMin < ridgeY && p.YMax > ridgeY) continue;
+
+                bool overlap = false;
+                foreach (var q in childPanels)
+                {
+                    if (q.Overlaps(p)) { overlap = true; break; }
+                }
+                if (overlap) continue;
+                
+                if (grid.RectOverlapsForbidden(p.XMin, p.YMin, p.XMax, p.YMax))
+                    continue;
+
+                childPanels.Add(p);
+
+            }
+            return new Individual(childPanels);
+        }
+        public static void Mutate(Individual ind, Random rng, RoofGrid grid, double mutationRate, double ridgeY, double stepSigmaPx=0.3 * Panel.PanelWidthPx)
+        {
+            var panels = ind.Panels;
+
+            for (int i = 0; i < panels.Count; i++)
+            {
+                if (rng.NextDouble() > mutationRate) continue;
+
+                var orig = panels[i];
+
+                for (int t = 0; t < panels.Count; t++)
+                {
+                    double dx = HelperFunctions.NextGaussian(rng) * stepSigmaPx;
+                    double dy = HelperFunctions.NextGaussian(rng) * stepSigmaPx;
+
+                    var cand = new Panel(orig.X, orig.Y, orig.Rotated);
+                    cand.MoveBy(dx, dy);
+                    if (rng.NextDouble() < 0.25)
+                        cand.ToggleOrientation();
+                    cand.ClampToBounds(grid.MinX, grid.MinY, grid.MaxX, grid.MaxY);
+
+                    if (cand.YMin < ridgeY && cand.YMax > ridgeY) continue;
+
+                    bool ok = true;
+                    for (int j = 0; j < panels.Count; j++)
+                    {
+                        if (j == i) continue;
+                        if (panels[j].Overlaps(cand)) { ok = false; break; }
+                    }
+                    if (!ok) continue;
+
+                    if (grid.RectOverlapsForbidden(cand.XMin, cand.YMin, cand.XMax, cand.YMax))
+                        continue;
+
+                    panels[i] = cand;
+                    break;
+                }
+            }
+        }
+    }
+}
