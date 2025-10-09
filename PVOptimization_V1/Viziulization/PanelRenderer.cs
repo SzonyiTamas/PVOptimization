@@ -38,7 +38,6 @@ namespace PVOptimization_V1.Visualization
                 }
             });
 
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath)) ?? ".");
             try
             {
                 img.Save(outputPath);
