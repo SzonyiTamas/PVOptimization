@@ -96,9 +96,6 @@ namespace PVOptimization_V1.GA
 
             double sumAvg = 0.0;
 
-            var bounds = new (int ix0, int iy0, int ix1, int iy1, int count)[n];
-            var panelAvg = new double[n];
-
             for (int i = 0; i < n; i++)
             {
                 var p = panels[i];
@@ -109,9 +106,6 @@ namespace PVOptimization_V1.GA
                 int count = (ix1 - ix0 + 1) * (iy1 - iy0 + 1);
                 double sum = grid.RectSum(ix0, iy0, ix1, iy1);
                 double avg = sum / count;
-
-                bounds[i] = (ix0, iy0, ix1, iy1, count);
-                panelAvg[i] = avg;
 
                 sumAvg += avg;
             }
