@@ -15,10 +15,11 @@ internal class Program
         int patienceGenerations = 4000;
         double minImprovement = 1e-3;
         bool easyInstall = false;
+        string ts = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
 
         var ga = new GeneticAlgorithm(grid,populationSize,panelsPerIndividual,generations,eliteRate,mutationRate,patienceGenerations,minImprovement,easyInstall);
         var bestResult = ga.Run();
-        PanelRenderer.RenderPanelsOnImage(grid, bestResult, baseImagePath: "heatmap_forbidden.png", outputPath: "result_layout.png", strokePx: 2f);
+        PanelRenderer.RenderPanelsOnImage(grid, bestResult, baseImagePath: Path.Combine("Data","heatmap_forbidden.png"), outputPath: Path.Combine("Results",$"result_layout_{ts}.png"), strokePx: 2f);
     }
 }
     

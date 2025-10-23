@@ -30,7 +30,7 @@ namespace PVOptimization_V1.Models
 
         public static RoofGrid FromCsv()
         {
-            using var reader = new StreamReader("roof_avg1_forbidden.csv");
+            using var reader = new StreamReader(Path.Combine("Data","roof_avg1_forbidden.csv"));
             var header = reader.ReadLine();
             var cols = header.Split(',').Select(s => s.Trim()).ToArray();
 
