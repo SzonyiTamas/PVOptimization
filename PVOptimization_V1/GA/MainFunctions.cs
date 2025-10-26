@@ -120,7 +120,7 @@ namespace PVOptimization_V1.GA
                 const int minRowSize = 3;
 
                 var yBuckets = panels
-                    .GroupBy(p => (int)Math.Round(p.YMin / yTol))
+                    .GroupBy(p => (Row: (int)Math.Round(p.YMin / yTol), Rot: p.Rotated))
                     .Select(g => g.Count())
                     .ToList();
 
