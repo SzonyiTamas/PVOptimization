@@ -9,7 +9,6 @@ namespace PVOptimization_V1.GA
     {
         private readonly RoofGrid grid;
         private readonly Random rng;
-        private readonly double ridgeY;
         
         private static readonly ThreadLocal<Random> ThreadSafeRng = new ThreadLocal<Random>(() => new Random(Guid.NewGuid().GetHashCode()));
 
@@ -27,7 +26,6 @@ namespace PVOptimization_V1.GA
         {
             this.grid = grid;
             this.rng = seed.HasValue ? new Random(seed.Value) : new Random();
-            this.ridgeY = (grid.MinY + grid.MaxY) / 2.0;
             PopulationSize = populationSize;
             PanelsPerIndividual = panelsPerIndividual;
             Generations = generations;
@@ -40,7 +38,7 @@ namespace PVOptimization_V1.GA
 
         public Individual Run()
         {
-            var pop = MainFunctions.CreateInitialPopulation(grid, PopulationSize, PanelsPerIndividual, rng, ridgeY);
+            var pop = MainFunctions.CreateInitialPopulation(grid, PopulationSize, PanelsPerIndividual, rng);
             MainFunctions.EvaluatePopulation(pop, grid, PanelsPerIndividual,EasyInstall);
 
             var bestEver = pop.OrderByDescending(ind => ind.Fitness).First().DeepCopy();
@@ -64,8 +62,8 @@ namespace PVOptimization_V1.GA
 
                 double currentMutationRate = MutationRate - (i / (double)(Generations - 1)) * (MutationRate - 0.05);
 
-                var child = MainFunctions.Crossover(p1, p2, grid, PanelsPerIndividual, localRng, ridgeY);
-                MainFunctions.Mutate(child, localRng, grid, currentMutationRate, ridgeY);
+                var child = MainFunctions.Crossover(p1, p2, grid, PanelsPerIndividual, localRng);
+                MainFunctions.Mutate(child, localRng, grid, currentMutationRate);
                 return child;}).ToList();
 
                 next.AddRange(nextChildren);

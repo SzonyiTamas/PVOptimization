@@ -9,7 +9,7 @@ namespace PVOptimization_V1.GA
 {
     internal class MainFunctions
     {
-        public static List<Individual> CreateInitialPopulation(RoofGrid grid, int populationSize, int panelsPerIndividual, Random rng, double ridgeY)
+        public static List<Individual> CreateInitialPopulation(RoofGrid grid, int populationSize, int panelsPerIndividual, Random rng)
         {
             double minX = grid.MinX, maxX = grid.MaxX, minY = grid.MinY, maxY = grid.MaxY;
 
@@ -24,23 +24,13 @@ namespace PVOptimization_V1.GA
                     bool placed = false;
                     for (int attempt = 0; attempt < 2000; attempt++)
                     {
-                        bool placeTop = rng.Next(2) == 0;
 
                         bool rotated = rng.Next(2) == 0;
                         double W = rotated ? Panel.PanelHeightPx : Panel.PanelWidthPx;
                         double H = rotated ? Panel.PanelWidthPx : Panel.PanelHeightPx;
 
-                        double yMinAllowed, yMaxAllowed;
-                        if (placeTop)
-                        {
-                            yMinAllowed = minY;
-                            yMaxAllowed = ridgeY - H;
-                        }
-                        else
-                        {
-                            yMinAllowed = ridgeY;
-                            yMaxAllowed = maxY - H;
-                        }
+                        double yMinAllowed = minY;
+                        double yMaxAllowed = maxY - H;
 
                         if (yMaxAllowed < yMinAllowed) continue;
 
@@ -49,9 +39,6 @@ namespace PVOptimization_V1.GA
 
                         var cand = new Panel(x, y, rotated);
                         cand.ClampToBounds(minX, minY, maxX, maxY);
-
-                        if (cand.YMin < ridgeY && cand.YMax > ridgeY)
-                            continue;
 
                         bool overlaps = false;
                         foreach (var p in panels)
@@ -145,7 +132,7 @@ namespace PVOptimization_V1.GA
             }
             return best;
         }
-        public static Individual Crossover(Individual p1, Individual p2, RoofGrid grid, int panelsPerIndividual, Random rng,double ridgeY)
+        public static Individual Crossover(Individual p1, Individual p2, RoofGrid grid, int panelsPerIndividual, Random rng)
         {
             var childPanels = new List<Panel>(panelsPerIndividual);
 
@@ -160,8 +147,6 @@ namespace PVOptimization_V1.GA
 
                 var p = new Panel(src.XMin, src.YMin,src.Rotated);
                 p.ClampToBounds(grid.MinX, grid.MinY, grid.MaxX, grid.MaxY);
-
-                if (p.YMin < ridgeY && p.YMax > ridgeY) continue;
 
                 bool overlap = false;
                 foreach (var q in childPanels)
@@ -178,7 +163,7 @@ namespace PVOptimization_V1.GA
             }
             return new Individual(childPanels);
         }
-        public static void Mutate(Individual ind, Random rng, RoofGrid grid, double mutationRate, double ridgeY, double stepSigmaPx=0.3 * Panel.PanelWidthPx)
+        public static void Mutate(Individual ind, Random rng, RoofGrid grid, double mutationRate, double stepSigmaPx=0.3 * Panel.PanelWidthPx)
         {
             var panels = ind.Panels;
 
@@ -198,8 +183,6 @@ namespace PVOptimization_V1.GA
                     if (rng.NextDouble() < 0.25)
                         cand.ToggleOrientation();
                     cand.ClampToBounds(grid.MinX, grid.MinY, grid.MaxX, grid.MaxY);
-
-                    if (cand.YMin < ridgeY && cand.YMax > ridgeY) continue;
 
                     bool ok = true;
                     for (int j = 0; j < panels.Count; j++)

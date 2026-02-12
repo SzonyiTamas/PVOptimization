@@ -19,7 +19,7 @@ internal class Program
 
         var ga = new GeneticAlgorithm(grid,populationSize,panelsPerIndividual,generations,eliteRate,mutationRate,patienceGenerations,minImprovement,easyInstall);
         var bestResult = ga.Run();
-        PanelRenderer.RenderPanelsOnImage(grid, bestResult, baseImagePath: Path.Combine("Data","heatmap_forbidden.png"), outputPath: Path.Combine("Results",$"result_layout_{ts}.png"), strokePx: 2f);
+        PanelRenderer.RenderPanelsOnImage(grid, bestResult, baseImagePath: Path.Combine("Data", "heatmap_kontyolt_kemennyel.png"), outputPath: Path.Combine("Results",$"result_layout_{ts}.png"), strokePx: 2f);
     }
 }
-    
+      
