@@ -51,7 +51,7 @@ namespace PVOptimization_V1.GA
                         }
                         if (overlaps) continue;
 
-                        
+
                         if (grid.RectOverlapsForbidden(cand.XMin, cand.YMin, cand.XMax, cand.YMax))
                             continue;
 
@@ -74,9 +74,9 @@ namespace PVOptimization_V1.GA
         }
         public static void EvaluatePopulation(List<Individual> pop, RoofGrid grid, int panelsPerIndividual, bool easyInstall)
         {
-            Parallel.ForEach(pop, ind => EvaluateIndividual(ind, grid,panelsPerIndividual,easyInstall));
+            Parallel.ForEach(pop, ind => EvaluateIndividual(ind, grid, panelsPerIndividual, easyInstall));
         }
-        public static void EvaluateIndividual(Individual ind, RoofGrid grid, int panelsPerIndividual,bool easyInstall)
+        public static void EvaluateIndividual(Individual ind, RoofGrid grid, int panelsPerIndividual, bool easyInstall)
         {
             var panels = ind.Panels;
             int n = panels.Count;
@@ -100,55 +100,8 @@ namespace PVOptimization_V1.GA
             int expected = panelsPerIndividual;
             double fitness = expected > 0 ? (sumAvg / expected) : 0.0;
 
-            if (easyInstall && n >= 2)
-            {
-                const double yTol = 2.0;
-                const double xTol = 2.0;
-                const double wHoriz = 0.1;
-                const double wVert = 0.1;
-                const int minRowSize = 3;
+            ind.Fitness = HelperFunctions.EasyInstall(easyInstall, n, fitness, panels, grid);
 
-                double maxDist = Panel.PanelWidthPx * 4;
-                double maxDist2 = maxDist * maxDist;
-
-                static bool CloseEnough(Panel a, Panel b, double maxDist2)
-                {
-                    double dx = a.CenterX - b.CenterX;
-                    double dy = a.CenterY - b.CenterY;
-                    return (dx * dx + dy * dy) <= maxDist2;
-                }
-
-                var filteredPanels = panels
-                    .Where(p => panels.Any(q =>
-                        !ReferenceEquals(p, q) &&
-                        CloseEnough(p, q, maxDist2) &&
-                        !grid.HasForbiddenBetweenCenters(p, q)))
-                    .ToList();
-
-                var evalPanels = filteredPanels.Count >= 2 ? filteredPanels : panels;
-                int m = evalPanels.Count;
-
-                var yBuckets = evalPanels
-                    .GroupBy(p => (Row: (int)Math.Round(p.YMin / yTol), Rot: p.Rotated))
-                    .Select(g => g.Count())
-                    .ToList();
-
-                int effectiveAlignedY = yBuckets.Sum(cnt => Math.Max(0, cnt - (minRowSize - 1)));
-                double rowScore = Math.Min(1.0, effectiveAlignedY / (double)m);
-
-                var xBuckets = evalPanels
-                    .GroupBy(p => (Col: (int)Math.Round(p.XMin / xTol), Rot: p.Rotated))
-                    .Select(g => g.Count())
-                    .ToList();
-
-                int effectiveAlignedX = xBuckets.Sum(cnt => Math.Max(0, cnt - (minRowSize - 1)));
-                double colScore = Math.Min(1.0, effectiveAlignedX / (double)m);
-
-                fitness = fitness * (1.0 + wHoriz * rowScore + wVert * colScore);
-
-            }
-
-            ind.Fitness = fitness;
 
         }
         public static Individual TournamentSelect(List<Individual> pop, int k, Random rng)
@@ -168,14 +121,14 @@ namespace PVOptimization_V1.GA
 
             var candidates = new List<Panel>(p1.Panels.Count + p2.Panels.Count);
             candidates.AddRange(p1.Panels);
-            candidates.AddRange(p2.Panels); 
-            HelperFunctions.ShuffleInPlace(candidates,rng);
+            candidates.AddRange(p2.Panels);
+            HelperFunctions.ShuffleInPlace(candidates, rng);
 
             foreach (var src in candidates)
             {
                 if (childPanels.Count >= panelsPerIndividual) break;
 
-                var p = new Panel(src.XMin, src.YMin,src.Rotated);
+                var p = new Panel(src.XMin, src.YMin, src.Rotated);
                 p.ClampToBounds(grid.MinX, grid.MinY, grid.MaxX, grid.MaxY);
 
                 bool overlap = false;
@@ -184,7 +137,7 @@ namespace PVOptimization_V1.GA
                     if (q.Overlaps(p)) { overlap = true; break; }
                 }
                 if (overlap) continue;
-                
+
                 if (grid.RectOverlapsForbidden(p.XMin, p.YMin, p.XMax, p.YMax))
                     continue;
 
@@ -193,7 +146,7 @@ namespace PVOptimization_V1.GA
             }
             return new Individual(childPanels);
         }
-        public static void Mutate(Individual ind, Random rng, RoofGrid grid, double mutationRate, double stepSigmaPx=0.3 * Panel.PanelWidthPx)
+        public static void Mutate(Individual ind, Random rng, RoofGrid grid, double mutationRate, double stepSigmaPx = 0.3 * Panel.PanelWidthPx)
         {
             var panels = ind.Panels;
 

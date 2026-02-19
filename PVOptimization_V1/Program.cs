@@ -7,14 +7,14 @@ internal class Program
     static void Main()
     {
         var grid = RoofGrid.FromCsv();
-        int populationSize = 75;
-        int panelsPerIndividual =35;
+        int populationSize = 60;
+        int panelsPerIndividual =14;
         int generations = 35000;
         double eliteRate = 0.13;
         double mutationRate = 0.3;
         int patienceGenerations = 4000;
         double minImprovement = 1e-3;
-        bool easyInstall = false;
+        bool easyInstall = true;
         string ts = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
 
         var ga = new GeneticAlgorithm(grid,populationSize,panelsPerIndividual,generations,eliteRate,mutationRate,patienceGenerations,minImprovement,easyInstall);
