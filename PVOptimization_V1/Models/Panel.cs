@@ -8,8 +8,8 @@ namespace PVOptimization_V1.Models
 {
     public class Panel
     {
-        public const double PanelWidthPx = 80.0;
-        public const double PanelHeightPx = 130.0;
+        public const double PanelWidthPx = 100.0;
+        public const double PanelHeightPx = 150.0;
 
         public bool Rotated { get; private set; }
 
@@ -22,6 +22,10 @@ namespace PVOptimization_V1.Models
         public double YMin => Y;
         public double XMax => X + Width;
         public double YMax => Y + Height;
+
+        //EasyInstall -> CenterX, CenterY
+        public double CenterX => XMin + (XMax - XMin) * 0.5;
+        public double CenterY => YMin + (YMax - YMin) * 0.5;
 
         public Panel(double x, double y, bool rotated = false)
         {

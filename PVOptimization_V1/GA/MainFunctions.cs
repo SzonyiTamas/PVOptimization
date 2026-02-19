@@ -103,19 +103,49 @@ namespace PVOptimization_V1.GA
             if (easyInstall && n >= 2)
             {
                 const double yTol = 2.0;
-                const double wHoriz = 0.06;
+                const double xTol = 2.0;
+                const double wHoriz = 0.1;
+                const double wVert = 0.1;
                 const int minRowSize = 3;
 
-                var yBuckets = panels
+                double maxDist = Panel.PanelWidthPx * 4;
+                double maxDist2 = maxDist * maxDist;
+
+                static bool CloseEnough(Panel a, Panel b, double maxDist2)
+                {
+                    double dx = a.CenterX - b.CenterX;
+                    double dy = a.CenterY - b.CenterY;
+                    return (dx * dx + dy * dy) <= maxDist2;
+                }
+
+                var filteredPanels = panels
+                    .Where(p => panels.Any(q =>
+                        !ReferenceEquals(p, q) &&
+                        CloseEnough(p, q, maxDist2) &&
+                        !grid.HasForbiddenBetweenCenters(p, q)))
+                    .ToList();
+
+                var evalPanels = filteredPanels.Count >= 2 ? filteredPanels : panels;
+                int m = evalPanels.Count;
+
+                var yBuckets = evalPanels
                     .GroupBy(p => (Row: (int)Math.Round(p.YMin / yTol), Rot: p.Rotated))
                     .Select(g => g.Count())
                     .ToList();
 
-                int effectiveAligned = yBuckets.Sum(cnt => Math.Max(0, cnt - (minRowSize - 1)));
+                int effectiveAlignedY = yBuckets.Sum(cnt => Math.Max(0, cnt - (minRowSize - 1)));
+                double rowScore = Math.Min(1.0, effectiveAlignedY / (double)m);
 
-                double rowScore = Math.Min(1.0, effectiveAligned / (double)n);
+                var xBuckets = evalPanels
+                    .GroupBy(p => (Col: (int)Math.Round(p.XMin / xTol), Rot: p.Rotated))
+                    .Select(g => g.Count())
+                    .ToList();
 
-                fitness = fitness * (1.0 + wHoriz * rowScore);
+                int effectiveAlignedX = xBuckets.Sum(cnt => Math.Max(0, cnt - (minRowSize - 1)));
+                double colScore = Math.Min(1.0, effectiveAlignedX / (double)m);
+
+                fitness = fitness * (1.0 + wHoriz * rowScore + wVert * colScore);
+
             }
 
             ind.Fitness = fitness;

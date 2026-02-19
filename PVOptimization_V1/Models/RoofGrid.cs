@@ -1,8 +1,10 @@
-﻿using System;
+﻿using SixLabors.Fonts;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Xml.Linq;
 
 namespace PVOptimization_V1.Models
@@ -13,6 +15,11 @@ namespace PVOptimization_V1.Models
         public double MinY { get; }
         public double MaxX { get; }
         public double MaxY { get; }
+
+        //EasyInstall -> Width, Height
+
+        public int Width => prefix.GetLength(0) - 1;
+        public int Height => prefix.GetLength(1) - 1;
 
         private readonly double[,] prefix;
         
@@ -30,7 +37,7 @@ namespace PVOptimization_V1.Models
 
         public static RoofGrid FromCsv()
         {
-            using var reader = new StreamReader(Path.Combine("Data","roof_avg_kontyolt_kemennyel_forbidden.csv"));
+            using var reader = new StreamReader(Path.Combine("Data","roof_avg_satorteto_ablakkal_forbidden.csv"));
             var header = reader.ReadLine();
             var cols = header.Split(',').Select(s => s.Trim()).ToArray();
 
@@ -133,6 +140,49 @@ namespace PVOptimization_V1.Models
             if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out val)) return true;
             var s2 = s.Replace(',', '.');
             return double.TryParse(s2, NumberStyles.Float, CultureInfo.InvariantCulture, out val);
+        }
+
+        //Helps for EasyInstall to identify forbidden areas between panels
+        public bool HasForbiddenBetweenCenters(Panel a, Panel b)
+        {
+            int x0 = (int)Math.Round(a.CenterX - MinX);
+            int y0 = (int)Math.Round(a.CenterY - MinY);
+            int x1 = (int)Math.Round(b.CenterX - MinX);
+            int y1 = (int)Math.Round(b.CenterY - MinY);
+
+            x0 = Math.Clamp(x0, 0, Width - 1);
+            y0 = Math.Clamp(y0, 0, Height - 1);
+            x1 = Math.Clamp(x1, 0, Width - 1);
+            y1 = Math.Clamp(y1, 0, Height - 1);
+
+            int xmin = Math.Min(x0, x1);
+            int xmax = Math.Max(x0, x1);
+            int ymin = Math.Min(y0, y1);
+            int ymax = Math.Max(y0, y1);
+    
+            if (!RectOverlapsForbidden(xmin, ymin, xmax, ymax))
+                return false;
+
+            int dx = Math.Abs(x1 - x0);
+            int sx = x0 < x1 ? 1 : -1;
+            int dy = -Math.Abs(y1 - y0);
+            int sy = y0 < y1 ? 1 : -1;
+            int err = dx + dy;
+
+            int x = x0;
+            int y = y0;
+            while (true)
+            {
+                int count = forbiddenPrefix[x + 1, y + 1] - forbiddenPrefix[x, y + 1] - forbiddenPrefix[x + 1, y] + forbiddenPrefix[x, y];
+                if (count > 0) return true;
+                if (x == x1 && y == y1) break;
+
+                int e2 = 2 * err;
+                if (e2 >= dy) { err += dy; x += sx; }
+                if (e2 <= dx) { err += dx; y += sy; }
+            }
+
+            return false;
         }
     }
 }
