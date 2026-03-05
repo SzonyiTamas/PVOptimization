@@ -8,16 +8,17 @@ internal class Program
     {
         var grid = RoofGrid.FromCsv();
         int populationSize = 60;
-        int panelsPerIndividual =14;
+        int panelsPerIndividual =25;
         int generations = 35000;
         double eliteRate = 0.13;
         double mutationRate = 0.3;
         int patienceGenerations = 4000;
         double minImprovement = 1e-3;
-        bool easyInstall = true;
+        AlignmentOption aligment = AlignmentOption.Horizontal;
+        double easyInstallWeight = 0.0;
         string ts = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
 
-        var ga = new GeneticAlgorithm(grid,populationSize,panelsPerIndividual,generations,eliteRate,mutationRate,patienceGenerations,minImprovement,easyInstall);
+        var ga = new GeneticAlgorithm(grid,populationSize,panelsPerIndividual,generations,eliteRate,mutationRate,patienceGenerations,minImprovement,easyInstallWeight,aligment);
         var bestResult = ga.Run();
         PanelRenderer.RenderPanelsOnImage(grid, bestResult, baseImagePath: Path.Combine("Data", "heatmap_satorteto_kemennyel_ablakkal.png"), outputPath: Path.Combine("Results",$"result_layout_{ts}.png"), strokePx: 2f);
     }

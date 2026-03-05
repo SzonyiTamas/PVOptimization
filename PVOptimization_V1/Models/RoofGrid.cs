@@ -9,6 +9,9 @@ using System.Xml.Linq;
 
 namespace PVOptimization_V1.Models
 {
+
+    public enum AlignmentOption { Horizontal, Vertical, Grid }
+
     public class RoofGrid
     {
         public double MinX { get; }
@@ -143,6 +146,7 @@ namespace PVOptimization_V1.Models
         }
 
         //Helps for EasyInstall to identify forbidden areas between panels
+        //Bresenham vonal
         public bool HasForbiddenBetweenCenters(Panel a, Panel b)
         {
             int x0 = (int)Math.Round(a.CenterX - MinX);
@@ -159,8 +163,9 @@ namespace PVOptimization_V1.Models
             int xmax = Math.Max(x0, x1);
             int ymin = Math.Min(y0, y1);
             int ymax = Math.Max(y0, y1);
+
     
-            if (!RectOverlapsForbidden(xmin, ymin, xmax, ymax))
+           if (!RectOverlapsForbidden(xmin, ymin, xmax, ymax))
                 return false;
 
             int dx = Math.Abs(x1 - x0);
@@ -183,6 +188,7 @@ namespace PVOptimization_V1.Models
             }
 
             return false;
+           
         }
     }
 }

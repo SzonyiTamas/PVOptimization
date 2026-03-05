@@ -72,18 +72,17 @@ namespace PVOptimization_V1.GA
 
             return pop;
         }
-        public static void EvaluatePopulation(List<Individual> pop, RoofGrid grid, int panelsPerIndividual, bool easyInstall)
+        public static void EvaluatePopulation(List<Individual> pop, RoofGrid grid, int panelsPerIndividual, double easyInstallWeight, AlignmentOption alignment)
         {
-            Parallel.ForEach(pop, ind => EvaluateIndividual(ind, grid, panelsPerIndividual, easyInstall));
+            Parallel.ForEach(pop, ind => EvaluateIndividual(ind, grid, panelsPerIndividual, easyInstallWeight, alignment));
         }
-        public static void EvaluateIndividual(Individual ind, RoofGrid grid, int panelsPerIndividual, bool easyInstall)
+        public static void EvaluateIndividual(Individual ind, RoofGrid grid, int panelsPerIndividual, double easyInstallWeight, AlignmentOption alignment)
         {
             var panels = ind.Panels;
-            int n = panels.Count;
 
             double sumAvg = 0.0;
 
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < panels.Count; i++)
             {
                 var p = panels[i];
 
@@ -100,7 +99,7 @@ namespace PVOptimization_V1.GA
             int expected = panelsPerIndividual;
             double fitness = expected > 0 ? (sumAvg / expected) : 0.0;
 
-            ind.Fitness = HelperFunctions.EasyInstall(easyInstall, n, fitness, panels, grid);
+            ind.Fitness = HelperFunctions.EasyInstall(easyInstallWeight, alignment, fitness, panels, grid);
 
 
         }

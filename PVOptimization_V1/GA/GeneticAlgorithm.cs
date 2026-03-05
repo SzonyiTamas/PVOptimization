@@ -19,10 +19,12 @@ namespace PVOptimization_V1.GA
         public double MutationRate { get; }
         public int PatienceGenerations { get; }
         public double MinImprovement { get; }
-        public bool EasyInstall { get; }
+        public double EasyInstallWeight { get; }
+
+        public AlignmentOption Alignment { get; }
 
 
-        public GeneticAlgorithm(RoofGrid grid, int populationSize, int panelsPerIndividual, int generations, double eliteRate, double mutationRate, int patienceGenerations, double minImprovement, bool easyInstall, int? seed = null)
+        public GeneticAlgorithm(RoofGrid grid, int populationSize, int panelsPerIndividual, int generations, double eliteRate, double mutationRate, int patienceGenerations, double minImprovement, double easyInstallWeight, AlignmentOption alignment, int? seed = null)
         {
             this.grid = grid;
             this.rng = seed.HasValue ? new Random(seed.Value) : new Random();
@@ -33,13 +35,14 @@ namespace PVOptimization_V1.GA
             MutationRate = mutationRate;
             PatienceGenerations = patienceGenerations;
             MinImprovement = minImprovement;
-            EasyInstall = easyInstall;
+            EasyInstallWeight = easyInstallWeight;
+            Alignment = alignment;
         }
 
         public Individual Run()
         {
             var pop = MainFunctions.CreateInitialPopulation(grid, PopulationSize, PanelsPerIndividual, rng);
-            MainFunctions.EvaluatePopulation(pop, grid, PanelsPerIndividual,EasyInstall);
+            MainFunctions.EvaluatePopulation(pop, grid, PanelsPerIndividual,EasyInstallWeight, Alignment);
 
             var bestEver = pop.OrderByDescending(ind => ind.Fitness).First().DeepCopy();
 
@@ -68,7 +71,7 @@ namespace PVOptimization_V1.GA
 
                 next.AddRange(nextChildren);
                 pop = next;
-                MainFunctions.EvaluatePopulation(pop, grid, PanelsPerIndividual,EasyInstall);
+                MainFunctions.EvaluatePopulation(pop, grid, PanelsPerIndividual,EasyInstallWeight,Alignment);
 
                 var bestNow = pop.OrderByDescending(ind => ind.Fitness).First();
                 if (bestNow.Fitness > bestEver.Fitness)
