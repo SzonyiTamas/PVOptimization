@@ -99,8 +99,7 @@ namespace PVOptimization_V1.GA
             int expected = panelsPerIndividual;
             double fitness = expected > 0 ? (sumAvg / expected) : 0.0;
 
-            ind.Fitness = HelperFunctions.EasyInstall(easyInstallWeight, alignment, fitness, panels, grid);
-
+            ind.Fitness = EasyInstallEvaluator.EasyInstall(easyInstallWeight, alignment, fitness, panels, grid);
 
         }
         public static Individual TournamentSelect(List<Individual> pop, int k, Random rng)

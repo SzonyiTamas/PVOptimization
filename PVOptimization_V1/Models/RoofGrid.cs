@@ -19,8 +19,6 @@ namespace PVOptimization_V1.Models
         public double MaxX { get; }
         public double MaxY { get; }
 
-        //EasyInstall -> Width, Height
-
         public int Width => prefix.GetLength(0) - 1;
         public int Height => prefix.GetLength(1) - 1;
 
@@ -145,8 +143,15 @@ namespace PVOptimization_V1.Models
             return double.TryParse(s2, NumberStyles.Float, CultureInfo.InvariantCulture, out val);
         }
 
-        //Helps for EasyInstall to identify forbidden areas between panels
-        //Bresenham vonal
+        public int RectForbiddenCount(int ix0, int iy0, int ix1, int iy1)
+        {
+            ix0++; iy0++; ix1++; iy1++;
+            return forbiddenPrefix[ix1, iy1]
+                 - forbiddenPrefix[ix0 - 1, iy1]
+                 - forbiddenPrefix[ix1, iy0 - 1]
+                 + forbiddenPrefix[ix0 - 1, iy0 - 1];
+        }
+
         public bool HasForbiddenBetweenCenters(Panel a, Panel b)
         {
             int x0 = (int)Math.Round(a.CenterX - MinX);
@@ -188,7 +193,6 @@ namespace PVOptimization_V1.Models
             }
 
             return false;
-           
         }
     }
 }

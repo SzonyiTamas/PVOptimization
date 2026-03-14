@@ -20,7 +20,6 @@ namespace PVOptimization_V1.GA
         public int PatienceGenerations { get; }
         public double MinImprovement { get; }
         public double EasyInstallWeight { get; }
-
         public AlignmentOption Alignment { get; }
 
 
@@ -87,24 +86,14 @@ namespace PVOptimization_V1.GA
                     gensSinceImprov++;
                 }
 
-                if ((i + 1) % 100 == 0)
-                    Console.WriteLine($"Gen {i + 1}/{Generations} -> best={bestEver.Fitness:F10}");
+                //if ((i + 1) % 100 == 0)
+                //    Console.WriteLine($"Gen {i + 1}/{Generations} -> best={bestEver.Fitness:F10}");
 
                 if (gensSinceImprov >= PatienceGenerations)
                     break;
 
             }
-            Console.WriteLine("\n========== Optimális megoldás ==========\n");
-            Console.WriteLine("Panelek koordinátái (Xmin, Ymin, Xmax, Ymax):");
-
-            int index = 1;
-            foreach (var p in bestEver.Panels.OrderBy(x => x.XMin))
-            {
-                Console.WriteLine($"{index,2}. Xmin={p.XMin,8:F2},  Ymin={p.YMin,8:F2},  Xmax={p.XMax,8:F2},  Ymax={p.YMax,8:F2}");
-                index++;
-            }
-
-            Console.WriteLine("\n===============================================");
+            
             return bestEver;
         }
     }

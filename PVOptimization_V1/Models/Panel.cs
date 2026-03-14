@@ -23,7 +23,6 @@ namespace PVOptimization_V1.Models
         public double XMax => X + Width;
         public double YMax => Y + Height;
 
-        //EasyInstall -> CenterX, CenterY
         public double CenterX => XMin + (XMax - XMin) * 0.5;
         public double CenterY => YMin + (YMax - YMin) * 0.5;
 
