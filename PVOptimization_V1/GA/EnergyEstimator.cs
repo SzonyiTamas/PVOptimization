@@ -22,10 +22,8 @@ namespace PVOptimization_V1.GA
             double roofSum = grid.RectSum(0, 0, w - 1, h - 1);
             int forbidden = grid.RectForbiddenCount(0, 0, w - 1, h - 1);
             int allowed = (w * h) - forbidden;
-            if (allowed <= 0) return (0, 0, 0, 0, systemKwp);
 
             double avgRoof = roofSum / allowed;
-            if (avgRoof <= 1e-9) return (0, 0, 0, avgRoof, systemKwp);
 
             double sumPanelAvg = 0.0;
             double eday = 0.0;
@@ -52,8 +50,6 @@ namespace PVOptimization_V1.GA
 
                 eday += panelKwp * hPoaKwhPerM2 * pr * localFactor;
             }
-
-            if (used == 0) return (0, 0, 0, avgRoof, systemKwp);
 
             double avgPanel = sumPanelAvg / used;
 

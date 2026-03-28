@@ -13,7 +13,7 @@ internal class Program
         double eliteRate = 0.13;
         double mutationRate = 0.3;
         int patienceGenerations = 10000;
-        double HPOA = 4.26;
+        double HPOA = 6.46432;
         double PR = 0.80;
         double minImprovement = 1e-3;
         string ts = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
