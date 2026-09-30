@@ -35,5 +35,4 @@ This repository stems from my BSc thesis at **Óbuda University**, which has als
 
 ## 👤 Author
 
-**Tamás Szőnyi**  
-- [GitHub Profile](https://github.com/SzonyiTamas) | [LinkedIn](https://www.linkedin.com/in/tam%C3%A1s-sz%C5%91nyi-37466243b/?isSelfProfile=true)
+**Tamás Szőnyi**
