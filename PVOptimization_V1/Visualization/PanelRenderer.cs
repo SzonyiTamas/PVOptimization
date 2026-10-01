@@ -6,9 +6,6 @@ using SixLabors.ImageSharp.Processing;
 
 namespace PVOptimization_V1.Visualization;
 
-/// <summary>
-/// Draws the outlines of the panels onto the roof heatmap image.
-/// </summary>
 public static class PanelRenderer
 {
     private static readonly Rgba32 OutlineColor = new(0, 0, 0, 255);
@@ -17,7 +14,6 @@ public static class PanelRenderer
     {
         using var image = Image.Load<Rgba32>(baseImagePath);
 
-        // Linear mapping from roof coordinates to image pixels.
         float scaleX = (float)(image.Width / (grid.MaxX - grid.MinX));
         float scaleY = (float)(image.Height / (grid.MaxY - grid.MinY));
         float offsetX = (float)(-grid.MinX * scaleX);
@@ -43,8 +39,8 @@ public static class PanelRenderer
         }
         catch (IOException)
         {
-            Console.WriteLine($"Nem sikerült menteni a képet ide: {outputPath}");
-            Console.WriteLine("Zárja be a megnyitott képfájlt, majd futtassa újra a programot.");
+            Console.WriteLine($"Failed to save the image to: {outputPath}");
+            Console.WriteLine("Close the opened image file, then run the program again.");
         }
     }
 }

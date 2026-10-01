@@ -2,10 +2,6 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.Optimization;
 
-/// <summary>
-/// Fitness = sum of the average solar values under each panel divided by the target
-/// panel count (so missing panels are penalized), optionally boosted by the easy-install bonus.
-/// </summary>
 internal sealed class FitnessEvaluator
 {
     private readonly RoofGrid _grid;

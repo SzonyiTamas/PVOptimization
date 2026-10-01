@@ -2,12 +2,8 @@ using System.Numerics;
 
 namespace PVOptimization_V1.Models;
 
-/// <summary>
-/// 2D prefix-sum table answering rectangular range-sum queries in O(1).
-/// </summary>
 internal sealed class SummedAreaTable<T> where T : INumber<T>
 {
-    // Padded with a leading zero row and column, so queries need no edge cases.
     private readonly T[,] _prefix;
 
     public SummedAreaTable(T[,] cells)

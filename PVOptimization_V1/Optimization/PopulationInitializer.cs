@@ -2,9 +2,6 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.Optimization;
 
-/// <summary>
-/// Creates the random starting population of the genetic algorithm.
-/// </summary>
 internal static class PopulationInitializer
 {
     private const int MaxPlacementAttempts = 2000;
@@ -19,10 +16,6 @@ internal static class PopulationInitializer
         return population;
     }
 
-    /// <summary>
-    /// Places panels one by one at random valid positions. If a panel cannot be placed
-    /// within <see cref="MaxPlacementAttempts"/> attempts, the individual keeps fewer panels.
-    /// </summary>
     private static Individual CreateRandomIndividual(RoofGrid grid, int panelCount, Random random)
     {
         var panels = new List<Panel>(panelCount);

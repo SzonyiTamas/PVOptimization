@@ -2,9 +2,6 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.Optimization;
 
-/// <summary>
-/// Genetic algorithm searching for the panel layout with the highest fitness on a roof.
-/// </summary>
 public sealed class GeneticAlgorithm
 {
     private const int TournamentSize = 4;
@@ -37,11 +34,10 @@ public sealed class GeneticAlgorithm
         var bestEver = SelectBest(population).DeepCopy();
         double lastSignificantBest = bestEver.Fitness;
         int generationsWithoutImprovement = 0;
-        int eliteCount = Math.Max(1, (int)Math.Round(_settings.PopulationSize * _settings.EliteRate));
 
         for (int generation = 0; generation < _settings.Generations; generation++)
         {
-            population = CreateNextGeneration(population, eliteCount, GetMutationRate(generation));
+            population = CreateNextGeneration(population, generation);
             _fitnessEvaluator.EvaluatePopulation(population);
 
             var bestNow = SelectBest(population);
@@ -65,24 +61,26 @@ public sealed class GeneticAlgorithm
         return bestEver;
     }
 
-    private List<Individual> CreateNextGeneration(List<Individual> population, int eliteCount, double mutationRate)
+    private List<Individual> CreateNextGeneration(List<Individual> population, int generation)
     {
-        var nextGeneration = population
+        var nextGeneration = new List<Individual>();
+        int eliteCount = Math.Max(1, (int)Math.Round(_settings.PopulationSize * _settings.EliteRate));
+
+        nextGeneration.AddRange(population
             .OrderByDescending(individual => individual.Fitness)
             .Take(eliteCount)
-            .Select(individual => individual.DeepCopy())
-            .ToList();
+            .Select(individual => individual.DeepCopy()));
 
         var children = Enumerable.Range(0, _settings.PopulationSize - eliteCount)
             .AsParallel()
-            .Select(_ => CreateChild(population, mutationRate))
+            .Select(_ => CreateChild(population, generation))
             .ToList();
 
         nextGeneration.AddRange(children);
         return nextGeneration;
     }
 
-    private Individual CreateChild(List<Individual> population, double mutationRate)
+    private Individual CreateChild(List<Individual> population, int generation)
     {
         var random = ThreadRandom.Value!;
 
@@ -91,17 +89,15 @@ public sealed class GeneticAlgorithm
         if (ReferenceEquals(parent1, parent2))
             parent2 = GeneticOperators.TournamentSelect(population, TournamentSize, random);
 
+        double currentMutationRate = GetMutationRate(generation);
+
         var child = GeneticOperators.Crossover(parent1, parent2, _grid, _settings.PanelsPerIndividual, random);
-        GeneticOperators.Mutate(child, _grid, mutationRate, random);
+        GeneticOperators.Mutate(child, _grid, currentMutationRate, random);
         return child;
     }
 
-    /// <summary>Mutation rate decreasing linearly from the initial rate to <see cref="FinalMutationRate"/>.</summary>
-    private double GetMutationRate(int generation)
-    {
-        double progress = generation / (double)(_settings.Generations - 1);
-        return _settings.MutationRate - progress * (_settings.MutationRate - FinalMutationRate);
-    }
+    private double GetMutationRate(int generation) =>
+        _settings.MutationRate - (generation / (double)(_settings.Generations - 1)) * (_settings.MutationRate - FinalMutationRate);
 
     private static Individual SelectBest(IEnumerable<Individual> population) =>
         population.OrderByDescending(individual => individual.Fitness).First();

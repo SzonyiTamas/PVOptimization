@@ -1,8 +1,5 @@
 namespace PVOptimization_V1.Models;
 
-/// <summary>
-/// One candidate solution of the genetic algorithm: a panel layout and its fitness.
-/// </summary>
 public sealed class Individual
 {
     public Individual(List<Panel> panels)

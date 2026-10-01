@@ -1,9 +1,5 @@
 namespace PVOptimization_V1.Models;
 
-/// <summary>
-/// Rasterized roof surface with one cell per unit, supporting fast queries of
-/// summed solar values and forbidden (non-placeable) cells over rectangles.
-/// </summary>
 public sealed class RoofGrid
 {
     private readonly SummedAreaTable<double> _values;
@@ -61,7 +57,6 @@ public sealed class RoofGrid
             minX, minY, maxX, maxY);
     }
 
-    /// <summary>Returns the grid cells fully covered by the given rectangle.</summary>
     public CellRange ToCellRange(double xMin, double yMin, double xMax, double yMax) =>
         new((int)Math.Ceiling(xMin - MinX),
             (int)Math.Ceiling(yMin - MinY),
@@ -75,13 +70,12 @@ public sealed class RoofGrid
 
     public int ForbiddenCount(CellRange range) => _forbiddenCells.Sum(range);
 
-    public bool OverlapsForbidden(Panel panel) => ForbiddenCount(ToCellRange(panel)) > 0;
+    public bool OverlapsForbidden(Panel panel) => OverlapsForbidden(ToCellRange(panel));
+
+    private bool OverlapsForbidden(CellRange range) => ForbiddenCount(range) > 0;
 
     public void ClampInside(Panel panel) => panel.ClampToBounds(MinX, MinY, MaxX, MaxY);
 
-    /// <summary>
-    /// Checks whether the straight line between the centers of two panels crosses a forbidden cell.
-    /// </summary>
     public bool HasForbiddenBetweenCenters(Panel a, Panel b)
     {
         var (x0, y0) = ToClampedCell(a.CenterX, a.CenterY);
@@ -91,11 +85,9 @@ public sealed class RoofGrid
             Math.Min(x0, x1), Math.Min(y0, y1),
             Math.Max(x0, x1), Math.Max(y0, y1));
 
-        // Fast path: nothing forbidden in the bounding box, so the line cannot hit anything.
-        if (ForbiddenCount(boundingBox) == 0)
+        if (!OverlapsForbidden(boundingBox))
             return false;
 
-        // Bresenham's line algorithm, checking every visited cell.
         int dx = Math.Abs(x1 - x0);
         int sx = x0 < x1 ? 1 : -1;
         int dy = -Math.Abs(y1 - y0);

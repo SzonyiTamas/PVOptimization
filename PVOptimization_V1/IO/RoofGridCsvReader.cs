@@ -3,10 +3,6 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.IO;
 
-/// <summary>
-/// Loads a <see cref="RoofGrid"/> from a CSV file with <c>center_x</c>, <c>center_y</c> and <c>value</c> columns.
-/// Rows whose coordinates or value cannot be parsed are skipped.
-/// </summary>
 public static class RoofGridCsvReader
 {
     private const string CenterXColumn = "center_x";
@@ -19,40 +15,46 @@ public static class RoofGridCsvReader
     {
         using var reader = new StreamReader(path);
 
-        string header = reader.ReadLine()
-            ?? throw new InvalidDataException($"The roof CSV file is empty: {path}");
-        string[] columns = header.Split(',');
+        string header = reader.ReadLine()!;
+        string[] columns = header.Split(',').Select(s => s.Trim()).ToArray();
 
-        int xIndex = GetColumnIndex(columns, CenterXColumn, path);
-        int yIndex = GetColumnIndex(columns, CenterYColumn, path);
-        int valueIndex = GetColumnIndex(columns, ValueColumn, path);
+        int? xIndex = FindColumnIndex(columns, CenterXColumn);
+        int? yIndex = FindColumnIndex(columns, CenterYColumn);
+        int? valueIndex = FindColumnIndex(columns, ValueColumn);
 
         var samples = new List<RoofSample>();
         string? line;
         while ((line = reader.ReadLine()) != null)
         {
             string[] fields = line.Split(',');
-            if (TryParseDouble(fields[xIndex], out double x)
-                && TryParseDouble(fields[yIndex], out double y)
-                && TryParseDouble(fields[valueIndex], out double value))
-            {
-                samples.Add(new RoofSample(x, y, value));
-            }
+            if (!TryParseDouble(fields[xIndex!.Value], out double x)) continue;
+            if (!TryParseDouble(fields[yIndex!.Value], out double y)) continue;
+            if (!TryParseDouble(fields[valueIndex!.Value], out double value)) continue;
+            samples.Add(new RoofSample(x, y, value));
         }
 
         return samples;
     }
 
-    private static int GetColumnIndex(string[] columns, string name, string path)
+    private static int? FindColumnIndex(string[] columns, string name)
     {
-        int index = Array.FindIndex(
-            columns, column => string.Equals(column.Trim(), name, StringComparison.OrdinalIgnoreCase));
+        name = name.Trim().ToLowerInvariant();
 
-        return index >= 0
-            ? index
-            : throw new InvalidDataException($"Missing column '{name}' in roof CSV file: {path}");
+        for (int i = 0; i < columns.Length; i++)
+        {
+            if (columns[i].Trim().ToLowerInvariant() == name)
+                return i;
+        }
+
+        return null;
     }
 
-    private static bool TryParseDouble(string text, out double value) =>
-        double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    private static bool TryParseDouble(string text, out double value)
+    {
+        text = text.Trim();
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+            return true;
+
+        return double.TryParse(text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
 }

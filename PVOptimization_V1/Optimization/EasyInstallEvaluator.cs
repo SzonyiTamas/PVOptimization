@@ -2,24 +2,17 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.Optimization;
 
-/// <summary>
-/// Rewards layouts that are easy to install: panels lined up in rows and/or columns,
-/// close to each other, inside groups that are not separated by forbidden areas.
-/// </summary>
 internal sealed class EasyInstallEvaluator
 {
     private const double HorizontalWeight = 0.2;
     private const double VerticalWeight = 0.2;
 
-    /// <summary>Smallest group / line of panels that earns a bonus.</summary>
     private const int MinGroupSize = 3;
     private const double ClosenessWeight = 1.0;
 
-    /// <summary>Panels whose centers are farther apart than this are not neighbors.</summary>
     private const double MaxNeighborDistancePx = Panel.PanelWidthPx * 4;
     private const double MaxNeighborDistanceSquared = MaxNeighborDistancePx * MaxNeighborDistancePx;
 
-    /// <summary>Gap between panels in a line at which the closeness score drops to zero.</summary>
     private const double MaxGapPx = Panel.PanelWidthPx * 2;
 
     private static readonly AlignmentAxis Rows = new(
@@ -46,16 +39,9 @@ internal sealed class EasyInstallEvaluator
         if (_weight == 0.0 || panels.Count < 2)
             return fitness;
 
-        var adjacency = BuildNeighborGraph(panels);
-
-        // Panels without any neighbor are ignored, unless that would leave fewer than two.
-        var panelsWithNeighbor = panels.Where((_, i) => adjacency[i].Count > 0).ToList();
-        var evaluatedPanels = panelsWithNeighbor.Count >= 2 ? panelsWithNeighbor : panels;
-
-        // Isolated panels form single-panel groups, which are below MinGroupSize and thus score nothing.
-        var groups = _splitByForbiddenZones
-            ? FindConnectedComponents(panels, adjacency)
-            : [evaluatedPanels];
+        var (adjacency, hasNeighbor) = BuildNeighborGraph(panels);
+        var (filteredPanels, filteredIndexMap, evaluatedPanels) = BuildEvaluationPanels(panels, hasNeighbor);
+        var groups = BuildGroups(panels, filteredPanels, filteredIndexMap, adjacency, evaluatedPanels);
 
         double rowSum = 0.0;
         double columnSum = 0.0;
@@ -77,37 +63,95 @@ internal sealed class EasyInstallEvaluator
 
     private double CalculateAlignmentBoost(double rowScore, double columnScore) => _alignment switch
     {
+        AlignmentOption.Grid => HorizontalWeight * rowScore + VerticalWeight * columnScore,
         AlignmentOption.Horizontal => HorizontalWeight * rowScore,
         AlignmentOption.Vertical => VerticalWeight * columnScore,
         _ => HorizontalWeight * rowScore + VerticalWeight * columnScore,
     };
 
-    /// <summary>
-    /// Connects two panels when their centers are close enough and (optionally)
-    /// no forbidden area lies between them.
-    /// </summary>
-    private List<int>[] BuildNeighborGraph(List<Panel> panels)
+    private (List<int>[] Adjacency, bool[] HasNeighbor) BuildNeighborGraph(List<Panel> panels)
     {
-        var adjacency = new List<int>[panels.Count];
-        for (int i = 0; i < panels.Count; i++)
-            adjacency[i] = [];
+        int panelCount = panels.Count;
+        var adjacency = new List<int>[panelCount];
+        var hasNeighbor = new bool[panelCount];
 
-        for (int i = 0; i < panels.Count; i++)
+        for (int i = 0; i < panelCount; i++)
+            adjacency[i] = new List<int>();
+
+        for (int i = 0; i < panelCount; i++)
         {
-            for (int j = i + 1; j < panels.Count; j++)
+            for (int j = i + 1; j < panelCount; j++)
             {
-                bool connected = AreCloseEnough(panels[i], panels[j])
+                bool canConnect = AreCloseEnough(panels[i], panels[j])
                     && (!_splitByForbiddenZones || !_grid.HasForbiddenBetweenCenters(panels[i], panels[j]));
 
-                if (!connected)
+                if (!canConnect)
                     continue;
 
                 adjacency[i].Add(j);
                 adjacency[j].Add(i);
+                hasNeighbor[i] = true;
+                hasNeighbor[j] = true;
             }
         }
 
-        return adjacency;
+        return (adjacency, hasNeighbor);
+    }
+
+    private static (List<Panel> FilteredPanels, List<int> FilteredIndexMap, List<Panel> EvaluatedPanels) BuildEvaluationPanels(
+        List<Panel> panels, bool[] hasNeighbor)
+    {
+        var filteredPanels = new List<Panel>();
+        var filteredIndexMap = new List<int>();
+
+        for (int i = 0; i < panels.Count; i++)
+        {
+            if (!hasNeighbor[i])
+                continue;
+
+            filteredPanels.Add(panels[i]);
+            filteredIndexMap.Add(i);
+        }
+
+        var evaluatedPanels = filteredPanels.Count >= 2 ? filteredPanels : panels;
+        return (filteredPanels, filteredIndexMap, evaluatedPanels);
+    }
+
+    private List<List<Panel>> BuildGroups(
+        List<Panel> panels,
+        List<Panel> filteredPanels,
+        List<int> filteredIndexMap,
+        List<int>[] adjacency,
+        List<Panel> evaluatedPanels)
+    {
+        if (!_splitByForbiddenZones)
+            return new List<List<Panel>> { evaluatedPanels };
+
+        if (filteredPanels.Count < 2)
+            return FindConnectedComponents(panels, adjacency);
+
+        int filteredCount = filteredPanels.Count;
+        var filteredAdjacency = new List<int>[filteredCount];
+        var oldToNew = new Dictionary<int, int>(filteredCount);
+
+        for (int i = 0; i < filteredCount; i++)
+        {
+            filteredAdjacency[i] = new List<int>();
+            oldToNew[filteredIndexMap[i]] = i;
+        }
+
+        for (int i = 0; i < filteredCount; i++)
+        {
+            int oldIndex = filteredIndexMap[i];
+
+            foreach (int oldNeighbor in adjacency[oldIndex])
+            {
+                if (oldToNew.TryGetValue(oldNeighbor, out int newNeighbor))
+                    filteredAdjacency[i].Add(newNeighbor);
+            }
+        }
+
+        return FindConnectedComponents(filteredPanels, filteredAdjacency);
     }
 
     private static bool AreCloseEnough(Panel a, Panel b)
@@ -153,10 +197,6 @@ internal sealed class EasyInstallEvaluator
         return components;
     }
 
-    /// <summary>
-    /// Splits the group into lines along the axis and scores each line long enough:
-    /// one point per panel beyond <c>MinGroupSize - 1</c>, plus a closeness bonus.
-    /// </summary>
     private static double ScoreAlignment(List<Panel> group, AlignmentAxis axis)
     {
         double total = 0.0;
@@ -173,10 +213,6 @@ internal sealed class EasyInstallEvaluator
         return total;
     }
 
-    /// <summary>
-    /// Groups panels of the same orientation whose line coordinates follow each other
-    /// within the axis tolerance.
-    /// </summary>
     private static List<List<Panel>> SplitIntoLines(List<Panel> panels, AlignmentAxis axis)
     {
         var lines = new List<List<Panel>>();
@@ -203,9 +239,6 @@ internal sealed class EasyInstallEvaluator
         return lines;
     }
 
-    /// <summary>
-    /// Average closeness of consecutive panels in a line: 1 when touching, 0 at <see cref="MaxGapPx"/> or more.
-    /// </summary>
     private static double CalculateCloseness(List<Panel> line, AlignmentAxis axis)
     {
         if (line.Count < 2)
@@ -213,14 +246,17 @@ internal sealed class EasyInstallEvaluator
 
         var sorted = line.OrderBy(axis.Start).ToList();
         double sum = 0.0;
+        int count = 0;
 
         for (int i = 0; i < sorted.Count - 1; i++)
         {
             double gap = Math.Max(0.0, axis.Start(sorted[i + 1]) - axis.End(sorted[i]));
-            sum += 1.0 - Math.Min(1.0, gap / MaxGapPx);
+            double closeness = 1.0 - Math.Min(1.0, gap / MaxGapPx);
+            sum += closeness;
+            count++;
         }
 
-        return sum / (sorted.Count - 1);
+        return count > 0 ? sum / count : 0.0;
     }
 
     /// <param name="LineCoordinate">Coordinate shared by panels in the same line.</param>

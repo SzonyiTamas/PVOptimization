@@ -2,9 +2,6 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.Optimization;
 
-/// <summary>
-/// Selection, crossover and mutation operators of the genetic algorithm.
-/// </summary>
 internal static class GeneticOperators
 {
     private const double OrientationFlipProbability = 0.25;
@@ -23,10 +20,6 @@ internal static class GeneticOperators
         return best;
     }
 
-    /// <summary>
-    /// Builds a child from the shuffled panels of both parents, keeping every panel
-    /// that fits without overlap until the target panel count is reached.
-    /// </summary>
     public static Individual Crossover(Individual parent1, Individual parent2, RoofGrid grid, int panelsPerIndividual, Random random)
     {
         var candidates = new List<Panel>(parent1.Panels.Count + parent2.Panels.Count);
@@ -50,11 +43,6 @@ internal static class GeneticOperators
         return new Individual(childPanels);
     }
 
-    /// <summary>
-    /// Moves each panel with probability <paramref name="mutationRate"/> by a Gaussian step
-    /// (occasionally also rotating it). Invalid moves are retried; the panel stays in place
-    /// if no valid move is found.
-    /// </summary>
     public static void Mutate(Individual individual, RoofGrid grid, double mutationRate, Random random,
         double stepSigmaPx = DefaultMutationStepSigmaPx)
     {
@@ -66,9 +54,8 @@ internal static class GeneticOperators
                 continue;
 
             var original = panels[i];
-            int maxAttempts = panels.Count;
 
-            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            for (int attempt = 0; attempt < panels.Count; attempt++)
             {
                 double dx = random.NextGaussian() * stepSigmaPx;
                 double dy = random.NextGaussian() * stepSigmaPx;

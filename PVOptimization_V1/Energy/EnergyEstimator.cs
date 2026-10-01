@@ -2,10 +2,6 @@ using PVOptimization_V1.Models;
 
 namespace PVOptimization_V1.Energy;
 
-/// <summary>
-/// Estimates the daily energy production of a panel layout. Each panel's nominal yield
-/// is scaled by how much better or worse its spot is than the roof average.
-/// </summary>
 public static class EnergyEstimator
 {
     private const double MinLocalFactor = 0.0;
@@ -31,14 +27,17 @@ public static class EnergyEstimator
             sumOfPanelAverages += panelAverage;
             countedPanels++;
 
-            double localFactor = Math.Clamp(panelAverage / averageRoofValue, MinLocalFactor, MaxLocalFactor);
+            double localFactor = panelAverage / averageRoofValue;
+            if (localFactor < MinLocalFactor) localFactor = MinLocalFactor;
+            if (localFactor > MaxLocalFactor) localFactor = MaxLocalFactor;
+
             dailyEnergyKwh += panelKwp * settings.DailyIrradiationKwhPerM2 * settings.PerformanceRatio * localFactor;
         }
 
         double averagePanelValue = sumOfPanelAverages / countedPanels;
-        double qualityFactor = averageRoofValue > 1e-9
-            ? Math.Clamp(averagePanelValue / averageRoofValue, MinLocalFactor, MaxLocalFactor)
-            : 0.0;
+        double qualityFactor = averageRoofValue > 1e-9 ? (averagePanelValue / averageRoofValue) : 0.0;
+        if (qualityFactor < MinLocalFactor) qualityFactor = MinLocalFactor;
+        if (qualityFactor > MaxLocalFactor) qualityFactor = MaxLocalFactor;
 
         return new EnergyEstimate(dailyEnergyKwh, qualityFactor, averagePanelValue, averageRoofValue, systemKwp);
     }

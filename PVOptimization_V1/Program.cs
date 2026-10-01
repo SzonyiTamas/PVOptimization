@@ -5,8 +5,8 @@ using PVOptimization_V1.Optimization;
 using PVOptimization_V1.Visualization;
 
 // ---------- Input files ----------
-string roofCsvPath = Path.Combine("Data", "roof_avg_kontyolt_kemennyel_forbidden.csv");
-string heatmapImagePath = Path.Combine("Data", "heatmap_kontyolt_kemennyel.png");
+string roofCsvPath = Path.Combine("Data", "roof_avg_satorteto_ablakkal_forbidden.csv");
+string heatmapImagePath = Path.Combine("Data", "heatmap_satorteto_kemennyel_ablakkal.png");
 
 // ---------- Optimization parameters ----------
 var gaSettings = new GeneticAlgorithmSettings
@@ -19,8 +19,8 @@ var gaSettings = new GeneticAlgorithmSettings
     MinImprovement = 1e-3,
 
     PanelsPerIndividual = 10,
-    Alignment = AlignmentOption.Grid,
-    EasyInstallWeight = 0.0,
+    Alignment = AlignmentOption.Horizontal,
+    EasyInstallWeight = 1.0,
 };
 
 var energySettings = new EnergySettings(

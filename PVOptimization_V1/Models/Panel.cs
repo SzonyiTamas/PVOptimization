@@ -1,8 +1,5 @@
 namespace PVOptimization_V1.Models;
 
-/// <summary>
-/// A rectangular PV panel on the roof, expressed in roof (pixel) coordinates.
-/// </summary>
 public sealed class Panel
 {
     public const double PanelWidthPx = 100.0;
