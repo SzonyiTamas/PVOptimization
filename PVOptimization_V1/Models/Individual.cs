@@ -1,32 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace PVOptimization_V1.Models;
 
-namespace PVOptimization_V1.Models
+/// <summary>
+/// One candidate solution of the genetic algorithm: a panel layout and its fitness.
+/// </summary>
+public sealed class Individual
 {
-    public class Individual
+    public Individual(List<Panel> panels)
     {
-        public List<Panel> Panels { get; }
-        public double Fitness { get; set; }
+        Panels = panels;
+    }
 
-        public Individual(List<Panel> panels)
-        {
-            Panels = panels;
-        }
-        public Individual DeepCopy()
-        {
-            var copyPanels = new List<Panel>(Panels.Count);
-            foreach (var p in Panels)
-            {
-                copyPanels.Add(new Panel(p.XMin, p.YMin, p.Rotated));
-            }
+    public List<Panel> Panels { get; }
+    public double Fitness { get; set; }
 
-            var clone = new Individual(copyPanels);
-            clone.Fitness = this.Fitness;
-
-            return clone;
-        }
+    public Individual DeepCopy()
+    {
+        var panels = Panels.Select(panel => panel.Clone()).ToList();
+        return new Individual(panels) { Fitness = Fitness };
     }
 }

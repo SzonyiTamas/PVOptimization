@@ -1,38 +1,42 @@
-﻿using PVOptimization_V1.Models;
-using PVOptimization_V1.GA;
+using PVOptimization_V1.Energy;
+using PVOptimization_V1.IO;
+using PVOptimization_V1.Models;
+using PVOptimization_V1.Optimization;
 using PVOptimization_V1.Visualization;
-using PVOptimization_V1.Viziulization;
 
-internal class Program
+// ---------- Input files ----------
+string roofCsvPath = Path.Combine("Data", "roof_avg_kontyolt_kemennyel_forbidden.csv");
+string heatmapImagePath = Path.Combine("Data", "heatmap_kontyolt_kemennyel.png");
+
+// ---------- Optimization parameters ----------
+var gaSettings = new GeneticAlgorithmSettings
 {
-    static void Main()
-    {
-        var grid = RoofGrid.FromCsv();
-        int populationSize = 60;
-        int generations = 35000;
-        double eliteRate = 0.13;
-        double mutationRate = 0.3;
-        int patienceGenerations = 10000;
-        double HPOA = 6.46432;
-        double PR = 0.80;
-        double minImprovement = 1e-3;
-        string ts = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+    PopulationSize = 60,
+    Generations = 35000,
+    EliteRate = 0.13,
+    MutationRate = 0.3,
+    PatienceGenerations = 10000,
+    MinImprovement = 1e-3,
 
-        //input parameters:
+    PanelsPerIndividual = 10,
+    Alignment = AlignmentOption.Grid,
+    EasyInstallWeight = 0.0,
+};
 
-        int panelsPerIndividual = 18;
-        AlignmentOption aligment = AlignmentOption.Grid;
-        double easyInstallWeight = 1.0;
-        double PANEL_WP = 450;
-        
-        var ga = new GeneticAlgorithm(grid,populationSize,panelsPerIndividual,generations,eliteRate,mutationRate,patienceGenerations,minImprovement,easyInstallWeight,aligment);
-        Console.WriteLine("The optimization is running...");
-        var bestResult = ga.Run();
-        
-        PanelRenderer.RenderPanelsOnImage(grid, bestResult, baseImagePath: Path.Combine("Data", "heatmap_satorteto_kemennyel_ablakkal.png"), outputPath: Path.Combine("Results",$"result_layout_{ts}.png"), strokePx: 2f);
-        var (eday, f, avgPanel, avgRoof, systemKwp) = EnergyEstimator.EstimateDailyProductionKwh(bestResult, grid, PANEL_WP, HPOA, PR);
-        ToConsole.ResultsToConsole(bestResult,eday,f,avgPanel,avgRoof,systemKwp);
-        
-    }
-}
-      
+var energySettings = new EnergySettings(
+    PanelPeakPowerWp: 450,
+    DailyIrradiationKwhPerM2: 6.46432,
+    PerformanceRatio: 0.80);
+
+// ---------- Run ----------
+var grid = RoofGridCsvReader.Read(roofCsvPath);
+string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+string outputImagePath = Path.Combine("Results", $"result_layout_{timestamp}.png");
+
+var geneticAlgorithm = new GeneticAlgorithm(grid, gaSettings);
+Console.WriteLine("The optimization is running...");
+var bestResult = geneticAlgorithm.Run();
+
+PanelRenderer.RenderPanelsOnImage(grid, bestResult, heatmapImagePath, outputImagePath, strokePx: 2f);
+var estimate = EnergyEstimator.Estimate(bestResult, grid, energySettings);
+ConsoleReporter.PrintResults(bestResult, estimate);
